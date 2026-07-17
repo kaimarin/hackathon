@@ -1,0 +1,14 @@
+-- Reference copy of the LIVE Supabase schema (already applied in the
+-- dashboard — do not run this against the existing project).
+--
+-- users.injury_type is the enum public.injury_type:
+--   ankle, knee, shoulder, elbow, wrist, lower_back, neck, hip,
+--   hamstring, calf, shin, groin, foot, hand
+--
+-- users:     id uuid pk, name text, injury_type injury_type,
+--            initial_pain_level int, created_at timestamptz
+-- plans:     id uuid pk, user_id uuid fk -> users.id (unique: one plan per
+--            user, updated in place), exercises jsonb, source_notes text,
+--            created_at timestamptz, updated_at timestamptz
+-- check_ins: id uuid pk, user_id uuid fk -> users.id, pain_level int,
+--            notes text, created_at timestamptz

@@ -1,14 +1,33 @@
+export const INJURY_TYPES = [
+  "ankle",
+  "knee",
+  "shoulder",
+  "elbow",
+  "wrist",
+  "lower_back",
+  "neck",
+  "hip",
+  "hamstring",
+  "calf",
+  "shin",
+  "groin",
+  "foot",
+  "hand",
+] as const;
+
+export type InjuryType = (typeof INJURY_TYPES)[number];
+
 export interface User {
   userId: string;
   name: string;
-  injuryType: string;
+  injuryType: InjuryType;
   painLevel: number;
   createdAt: string;
 }
 
 export interface CreateUserInput {
   name: string;
-  injuryType: string;
+  injuryType: InjuryType;
   painLevel: number;
 }
 
@@ -31,9 +50,9 @@ export interface ProgressEntry {
 
 export interface PlanSummary {
   userId: string;
-  planVersion: number;
-  focus: string;
+  planId: string;
   exercises: Exercise[];
+  sourceNotes: string | null;
   updatedAt: string;
 }
 

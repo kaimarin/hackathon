@@ -1,4 +1,6 @@
-import type { CreateUserInput, User } from "@/lib/types";
+import { supabaseAdmin } from "@/lib/supabase";
+import { starterExercises } from "@/lib/mock";
+import { INJURY_TYPES, type CreateUserInput, type User } from "@/lib/types";
 
 export async function POST(request: Request) {
   let body: Partial<CreateUserInput>;
@@ -15,15 +17,52 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  if (!INJURY_TYPES.includes(injuryType)) {
+    return Response.json(
+      { error: `injuryType must be one of: ${INJURY_TYPES.join(", ")}` },
+      { status: 400 }
+    );
+  }
+  if (painLevel < 0 || painLevel > 10) {
+    return Response.json(
+      { error: "painLevel must be a number from 0 to 10" },
+      { status: 400 }
+    );
+  }
 
-  // Stub: persist to database once it's wired in
+  const supabase = supabaseAdmin();
+
+  const { data: row, error } = await supabase
+    .from("users")
+    .insert({ name, injury_type: injuryType, initial_pain_level: painLevel })
+    .select()
+    .single();
+  if (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+
+  // Starter plan content until RocketRide generation is wired in
+  const [{ error: planError }, { error: checkInError }] = await Promise.all([
+    supabase.from("plans").insert({
+      user_id: row.id,
+      exercises: starterExercises(),
+      source_notes: "Starter plan from intake",
+    }),
+    supabase.from("check_ins").insert({ user_id: row.id, pain_level: painLevel }),
+  ]);
+  if (planError || checkInError) {
+    return Response.json(
+      { error: (planError ?? checkInError)!.message },
+      { status: 500 }
+    );
+  }
+
   const user: User = {
-    userId: crypto.randomUUID(),
-    name,
-    injuryType,
-    painLevel,
-    createdAt: new Date().toISOString(),
+    userId: row.id,
+    name: row.name,
+    injuryType: row.injury_type,
+    painLevel: row.initial_pain_level,
+    createdAt: row.created_at,
   };
-
   return Response.json(user, { status: 201 });
 }

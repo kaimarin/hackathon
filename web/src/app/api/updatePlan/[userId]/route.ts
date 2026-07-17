@@ -1,5 +1,5 @@
-import { mockPlan } from "@/lib/mock";
-import type { CheckInInput } from "@/lib/types";
+import { supabaseAdmin } from "@/lib/supabase";
+import type { CheckInInput, PlanSummary } from "@/lib/types";
 
 export async function POST(
   request: Request,
@@ -22,9 +22,49 @@ export async function POST(
     );
   }
 
-  // Stub: record the check-in and regenerate the plan via RocketRide once wired in
-  const plan = mockPlan(userId, 2);
+  const supabase = supabaseAdmin();
 
+  const { data: existing, error: existingError } = await supabase
+    .from("plans")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existingError) {
+    return Response.json({ error: existingError.message }, { status: 500 });
+  }
+  if (!existing) {
+    return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  const { error: checkInError } = await supabase
+    .from("check_ins")
+    .insert({ user_id: userId, pain_level: painLevel, notes: notes ?? null });
+  if (checkInError) {
+    return Response.json({ error: checkInError.message }, { status: 500 });
+  }
+
+  // Exercises are carried over unchanged for now; RocketRide will regenerate
+  // them from the check-in once wired in
+  const { data: row, error: updateError } = await supabase
+    .from("plans")
+    .update({
+      source_notes: notes ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .select()
+    .single();
+  if (updateError) {
+    return Response.json({ error: updateError.message }, { status: 500 });
+  }
+
+  const plan: PlanSummary = {
+    userId,
+    planId: row.id,
+    exercises: row.exercises,
+    sourceNotes: row.source_notes,
+    updatedAt: row.updated_at,
+  };
   return Response.json({
     ...plan,
     checkIn: { painLevel, notes: notes ?? null },
