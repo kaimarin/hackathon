@@ -1,0 +1,9 @@
+.rocketride/
+.env
+.env.*
+!.env.example
+apikey
+*.key
+__pycache__/
+.venv/
+node_modules/
